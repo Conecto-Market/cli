@@ -1,0 +1,43 @@
+{
+  "name": "conecto",
+  "version": "0.1.0",
+  "description": "Conecto from the command line: sign your AI agent up, find and call business tools (CRM, email, phone, calendar, invoices and more) and keep an eye on the balance.",
+  "keywords": [
+    "conecto",
+    "ai-agent",
+    "agents",
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "skill",
+    "crm",
+    "cli"
+  ],
+  "homepage": "https://conecto.chat",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Conecto-Market/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Conecto-Market/cli/issues",
+    "email": "hello@conecto.chat"
+  },
+  "license": "MIT",
+  "author": "Conecto <hello@conecto.chat> (https://conecto.chat)",
+  "type": "module",
+  "bin": {
+    "conecto": "bin/conecto.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
