@@ -1,5 +1,5 @@
 {
-  "name": "conecto",
+  "name": "@conecto-chat/cli",
   "version": "0.1.0",
   "description": "Conecto from the command line: sign your AI agent up, find and call business tools (CRM, email, phone, calendar, invoices and more) and keep an eye on the balance.",
   "keywords": [
@@ -39,5 +39,8 @@
   },
   "scripts": {
     "test": "node --test"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

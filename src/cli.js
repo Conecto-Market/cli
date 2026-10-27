@@ -30,9 +30,13 @@ const colors = (stream) => Boolean(stream.isTTY) && !env.NO_COLOR && env.TERM !=
 const paint = (code) => (text) => (colors(process.stdout) ? `\x1b[${code}m${text}\x1b[0m` : String(text))
 const bold = paint('1')
 const dim = paint('2')
-const out = (text = '') => process.stdout.write(`${text}\n`)
-const err = (text = '') => process.stderr.write(`${text}\n`)
-const json = (value) => out(JSON.stringify(value, null, 2))
+// The hints below say `npx conecto`; each is printed as the command that started this copy: `npx @conecto-chat/cli`
+// through npx, or `conecto` once installed (npm install -g @conecto-chat/cli).
+export const CMD = /[\\/]_npx[\\/]/.test(process.argv[1] || '') ? `npx ${PKG.name}` : 'conecto'
+const hint = (text) => String(text).replaceAll('npx conecto', CMD)
+const out = (text = '') => process.stdout.write(`${hint(text)}\n`)
+const err = (text = '') => process.stderr.write(`${hint(text)}\n`)
+const json = (value) => process.stdout.write(`${JSON.stringify(value, null, 2)}\n`)
 
 function table(rows, head) {
   const all = head ? [head, ...rows] : rows
@@ -683,6 +687,7 @@ const HELP = {
   '': `conecto ${VERSION}: business tools for your AI agent
 
 Usage: npx conecto <command> [options]
+Run it with npx ${PKG.name} <command>, or install it once (npm install -g ${PKG.name}) and type conecto.
 
 Start
   signup      Sign your agent up, with $1.00 of free credit

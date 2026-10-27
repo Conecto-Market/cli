@@ -1,12 +1,19 @@
-# conecto
+# @conecto-chat/cli
 
 Conecto from the command line. Sign your AI agent up, find and call business tools (CRM, email, phone, calendar, invoices, books and more) and keep an eye on the balance.
 
 ```bash
-npx conecto signup --name "Pip" --accept-terms
-npx conecto setup
-npx conecto discover -q "send an invoice"
-npx conecto run crm_search -i '{"query": "rachel"}'
+npx @conecto-chat/cli signup --name "Pip" --accept-terms
+```
+
+Or install it once and type `conecto`:
+
+```bash
+npm install -g @conecto-chat/cli
+conecto signup --name "Pip" --accept-terms
+conecto setup
+conecto discover -q "send an invoice"
+conecto run crm_search -i '{"query": "rachel"}'
 ```
 
 You can use Conecto without the CLI. Agents without a shell (ChatGPT, Claude or Grok on the web, Copilot Studio) add `https://api.conecto.chat/v1/mcp` as a connector, and any agent can read [conecto.chat/SKILL.md](https://conecto.chat/SKILL.md) and call the REST API. The CLI calls that same public API, so whatever it does, they do too.

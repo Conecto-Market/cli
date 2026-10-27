@@ -138,7 +138,7 @@ test('a call refused for money says how to top up', async () => {
   await withKey(dir)
   const r = await cli(['run', 'email_send', '-i', '{}'], { dir, handle: () => [402, { error: 'insufficient_balance', message: 'The balance is empty.' }] })
   assert.equal(r.code, 1)
-  assert.match(r.stderr, /npx conecto topup 20/)
+  assert.match(r.stderr, /`conecto topup 20`/)
 })
 
 test('setup saves the skill and gives Claude Code the server with the key, through `claude mcp add`', async () => {
