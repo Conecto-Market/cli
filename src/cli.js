@@ -174,7 +174,7 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-// A question whose answer isn't shown as it's typed or pasted: Enter ends it, Ctrl-C stops.
+// A hidden prompt: what is typed or pasted stays off the screen. Enter ends it, Ctrl-C stops.
 function askHidden(question) {
   const stdin = process.stdin
   process.stderr.write(question)
@@ -203,7 +203,7 @@ function askHidden(question) {
   })
 }
 
-// The keys, tokens and passwords `run -s <name>` sends: typed at a prompt that shows nothing, or piped in whole (a key
+// The keys, tokens and passwords `run -s <name>` sends: typed at a hidden prompt, or piped in whole (a key
 // file: < key.json). They go from this computer straight to the API, never through a chat or the shell's history.
 async function readSecrets(names) {
   if (!process.stdin.isTTY) {
@@ -214,7 +214,7 @@ async function readSecrets(names) {
   }
   const values = {}
   for (const name of names) {
-    const value = (await askHidden(`${name} (not shown as you type): `)).trim()
+    const value = (await askHidden(`${name} (hidden): `)).trim()
     if (!value) throw new Fail(`No ${name} typed. Nothing was sent.`)
     values[name] = value
   }
@@ -514,7 +514,7 @@ async function inspect(argv) {
   }
   if (secrets.length) {
     out('')
-    out(`Type ${secrets.join(' or ')} at a prompt that doesn't show it, instead of in -i: add ${secrets.map((s) => `-s ${s}`).join(' or ')} to run.`)
+    out(`Type ${secrets.join(' or ')} at a hidden prompt: add ${secrets.map((s) => `-s ${s}`).join(' or ')} to run, and leave it out of -i.`)
   }
   out('')
   out(dim(`Its page, with a real reply and its errors: https://conecto.chat/tools/${t.area}/${t.name}.md`))
@@ -548,7 +548,7 @@ async function runTool(argv) {
   }
   if (args === null || typeof args !== 'object' || Array.isArray(args)) throw new Fail('The input is a JSON object of the tool\'s arguments, like {"query": "rachel"}.')
   for (const secret of secrets) {
-    if (Object.hasOwn(args, secret)) throw new Fail(`Leave ${secret} out of -i: -s ${secret} reads it at a prompt that doesn't show it, or from stdin.`)
+    if (Object.hasOwn(args, secret)) throw new Fail(`Leave ${secret} out of -i: -s ${secret} reads it at a hidden prompt, or from stdin.`)
   }
   if (secrets.length) Object.assign(args, await readSecrets(secrets))
   const idempotency = o['idempotency-key'] || randomUUID()
@@ -811,8 +811,8 @@ Calls a tool and prints its reply as JSON.
 
   -i, --input <json>        The arguments, as a JSON object (- reads them from stdin)
   -f, --input-file <path>   The arguments from a file
-  -s, --secret <name>       Read that argument (a key, token or password) at a prompt that doesn't show it,
-                            or from stdin (< key.json), so it never sits in a chat or a command line
+  -s, --secret <name>       Read that argument (a key, token or password) at a hidden prompt, or from
+                            stdin (< key.json), so it stays out of chats and command lines
   -w, --wait                Wait for a tool that runs in the background
   -o, --output <path>       Save the reply to a file
       --idempotency-key <k> Retry safely: the same key never charges twice

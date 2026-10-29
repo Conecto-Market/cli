@@ -27,7 +27,7 @@ You can use Conecto without the CLI. Agents without a shell (ChatGPT, Claude or 
 | `discover -q "<job>"` | Finds tools for a job, best match first |
 | `areas`, `tools [--area crm]` | Every area, and every tool with its price |
 | `inspect <tool>` | A tool's inputs, price and an example call |
-| `run <tool> -i '<json>'` | Calls a tool and prints its reply as JSON (`-w` waits for tools that run in the background, `-s <name>` reads a key at a prompt that doesn't show it) |
+| `run <tool> -i '<json>'` | Calls a tool and prints its reply as JSON (`-w` waits for tools that run in the background, `-s <name>` reads a key at a hidden prompt) |
 | `runs list`, `runs get -r <id>` | Recent calls, and one call |
 | `balance` | The balance, the budgets and this month's free reads |
 | `topup <dollars>` | A checkout link to add credit |
@@ -42,7 +42,7 @@ Every command takes `--json` for output an agent can parse, and `--help`.
 
 ## Keys for your other systems
 
-Connecting HubSpot, Salesforce, Microsoft 365, Google Workspace or your own API, or importing from HubSpot, Pipedrive or Zendesk, takes that system's key. `-s` reads it at a prompt that doesn't show it, or from a file, and sends it straight to Conecto, so it never passes through your agent's chat:
+Connecting HubSpot, Salesforce, Microsoft 365, Google Workspace or your own API, or importing from HubSpot, Pipedrive or Zendesk, takes that system's key. `-s` reads it at a hidden prompt, or from a file, and sends it straight to Conecto, so it stays out of your agent's chat:
 
 ```bash
 conecto run hubspot_connect -s token
