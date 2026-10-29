@@ -27,7 +27,7 @@ You can use Conecto without the CLI. Agents without a shell (ChatGPT, Claude or 
 | `discover -q "<job>"` | Finds tools for a job, best match first |
 | `areas`, `tools [--area crm]` | Every area, and every tool with its price |
 | `inspect <tool>` | A tool's inputs, price and an example call |
-| `run <tool> -i '<json>'` | Calls a tool and prints its reply as JSON (`-w` waits for tools that run in the background) |
+| `run <tool> -i '<json>'` | Calls a tool and prints its reply as JSON (`-w` waits for tools that run in the background, `-s <name>` reads a key at a prompt that doesn't show it) |
 | `runs list`, `runs get -r <id>` | Recent calls, and one call |
 | `balance` | The balance, the budgets and this month's free reads |
 | `topup <dollars>` | A checkout link to add credit |
@@ -39,6 +39,19 @@ Every command takes `--json` for output an agent can parse, and `--help`.
 ## Signing up
 
 `signup` accepts Conecto's [terms](https://conecto.chat/terms) for the business your agent works for, so it asks first, or takes `--accept-terms`. It also takes `--business`, `--owner-email`, `--country`, `--website`, `--referral <partner code>`, and `--join <code>` to join your company's account with a code from its IT.
+
+## Keys for your other systems
+
+Connecting HubSpot, Salesforce, Microsoft 365, Google Workspace or your own API, or importing from HubSpot, Pipedrive or Zendesk, takes that system's key. `-s` reads it at a prompt that doesn't show it, or from a file, and sends it straight to Conecto, so it never passes through your agent's chat:
+
+```bash
+conecto run hubspot_connect -s token
+conecto run connect_add -i '{"name": "zendesk", "base_url": "https://acme.zendesk.com/api/v2", "allow": ["GET /tickets*"]}' -s secret
+conecto run google_connect -i '{"mailboxes": ["support@acme.example"]}' -s secret < service-account.json
+conecto run import_from_hubspot -s access_token -w
+```
+
+Your agent can also call the tool without the key: it gets a one-time link where the owner, signed in on conecto.chat, types it.
 
 ## The key
 

@@ -133,6 +133,39 @@ test('run --wait follows a call that runs in the background to its end', async (
   assert.equal(JSON.parse(r.stdout).status, 'succeeded')
 })
 
+test('run -s reads a key from stdin and sends it straight to the API with the other arguments', async () => {
+  const dir = await home()
+  await withKey(dir)
+  const reply = { tool: 'connect_add', status: 'succeeded', cost_usd: '$0.00', result: { connection: { name: 'zendesk' } } }
+  const r = await cli(['run', 'connect_add', '-i', '{"name": "zendesk", "allow": ["GET /tickets*"]}', '-s', 'secret'], {
+    dir, stdin: 'zd-token-1234\n', handle: () => [200, reply],
+  })
+  assert.equal(r.code, 0, r.stderr)
+  assert.equal(seen.length, 1)
+  assert.equal(seen[0].path, '/v1/tools/connect_add')
+  assert.deepEqual(seen[0].body, { name: 'zendesk', allow: ['GET /tickets*'], secret: 'zd-token-1234' })
+  assert.ok(!`${r.stdout}${r.stderr}`.includes('zd-token-1234'), 'the key is never printed')
+})
+
+test('run -s keeps a key file whole, and refuses a key also given in -i or none at all', async () => {
+  const dir = await home()
+  await withKey(dir)
+  const file = '{\n  "type": "service_account",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\nMIIE\\n"\n}\n'
+  const ok = await cli(['run', 'google_connect', '-i', '{"mailboxes": ["support@halverson.example"]}', '-s', 'secret'], {
+    dir, stdin: file, handle: () => [200, { status: 'succeeded', result: {} }],
+  })
+  assert.equal(ok.code, 0, ok.stderr)
+  assert.equal(seen[0].body.secret, file.trim())
+  const twice = await cli(['run', 'hubspot_connect', '-i', '{"token": "pat-1234567890"}', '-s', 'token'], { dir, stdin: 'pat-1234567890' })
+  assert.equal(twice.code, 1)
+  assert.match(twice.stderr, /Leave token out of -i/)
+  assert.ok(!twice.stderr.includes('pat-1234567890'))
+  const empty = await cli(['run', 'hubspot_connect', '-s', 'token'], { dir, stdin: '' })
+  assert.equal(empty.code, 1)
+  assert.match(empty.stderr, /No token/)
+  assert.equal(seen.length, 0)                                  // neither reached the API
+})
+
 test('a call refused for money says how to top up', async () => {
   const dir = await home()
   await withKey(dir)

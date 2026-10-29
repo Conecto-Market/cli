@@ -174,6 +174,53 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8')
 }
 
+// A question whose answer isn't shown as it's typed or pasted: Enter ends it, Ctrl-C stops.
+function askHidden(question) {
+  const stdin = process.stdin
+  process.stderr.write(question)
+  return new Promise((resolve, reject) => {
+    let value = ''
+    const finish = (error) => {
+      stdin.removeListener('data', onData)
+      stdin.setRawMode(false)
+      stdin.pause()
+      process.stderr.write('\n')
+      if (error) reject(error)
+      else resolve(value)
+    }
+    const onData = (chunk) => {
+      for (const ch of chunk) {
+        if (ch === '\r' || ch === '\n' || ch === '\u0004') return finish()
+        if (ch === '\u0003') return finish(new Fail('Stopped. Nothing was sent.'))
+        if (ch === '\u007f' || ch === '\b') value = value.slice(0, -1)
+        else if (ch >= ' ') value += ch
+      }
+    }
+    stdin.setRawMode(true)
+    stdin.setEncoding('utf8')
+    stdin.on('data', onData)
+    stdin.resume()
+  })
+}
+
+// The keys, tokens and passwords `run -s <name>` sends: typed at a prompt that shows nothing, or piped in whole (a key
+// file: < key.json). They go from this computer straight to the API, never through a chat or the shell's history.
+async function readSecrets(names) {
+  if (!process.stdin.isTTY) {
+    if (names.length > 1) throw new Fail('Several -s at once read from stdin: send one at a time, or type them at the prompt.')
+    const value = (await readStdin()).trim()
+    if (!value) throw new Fail(`No ${names[0]} on stdin. Nothing was sent.`)
+    return { [names[0]]: value }
+  }
+  const values = {}
+  for (const name of names) {
+    const value = (await askHidden(`${name} (not shown as you type): `)).trim()
+    if (!value) throw new Fail(`No ${name} typed. Nothing was sent.`)
+    values[name] = value
+  }
+  return values
+}
+
 // The agent running this, when it says so, for the key's name on the account page.
 function runtime() {
   if (env.CLAUDECODE) return 'Claude Code'
@@ -457,12 +504,17 @@ async function inspect(argv) {
   if (props.length) {
     out('')
     out(bold('Input'))
-    table(props.map(([key, s]) => [`  ${key}`, kind(s), required.has(key) ? 'required' : '', (s.description || '').replace(/\s+/g, ' ')]))
+    table(props.map(([key, s]) => [`  ${key}`, kind(s), [required.has(key) && 'required', s.writeOnly && 'secret'].filter(Boolean).join(', '), (s.description || '').replace(/\s+/g, ' ')]))
   }
+  const secrets = props.filter(([, s]) => s.writeOnly).map(([key]) => key)
   if (t.examples?.length) {
     out('')
     out(bold('Example'))
     out(`  npx conecto run ${t.name} -i '${JSON.stringify(t.examples[0])}'`)
+  }
+  if (secrets.length) {
+    out('')
+    out(`Type ${secrets.join(' or ')} at a prompt that doesn't show it, instead of in -i: add ${secrets.map((s) => `-s ${s}`).join(' or ')} to run.`)
   }
   out('')
   out(dim(`Its page, with a real reply and its errors: https://conecto.chat/tools/${t.area}/${t.name}.md`))
@@ -475,13 +527,16 @@ async function runTool(argv) {
   const { values: o, positionals: [name] } = parse(argv, {
     input: { type: 'string', short: 'i' }, 'input-file': { type: 'string', short: 'f' }, wait: { type: 'boolean', short: 'w' },
     output: { type: 'string', short: 'o' }, 'idempotency-key': { type: 'string' }, approval: { type: 'string' },
+    secret: { type: 'string', short: 's', multiple: true },
   })
   if (o.help) return help('run')
   if (!name) throw new Fail('Name the tool: npx conecto run crm_search -i \'{"query": "rachel"}\'')
   const saved = await current(o)
   const root = base(o, saved)
+  const secrets = o.secret || []
   let input = o.input
   if (o['input-file']) input = await readFile(o['input-file'], 'utf8')
+  else if (input === '-' && secrets.length && !process.stdin.isTTY) throw new Fail('-i - and -s both read stdin: give the arguments with -i \'<json>\' or -f <file>.')
   else if (input === '-') input = await readStdin()
   let args = {}
   if (input !== undefined && input.trim()) {
@@ -492,6 +547,10 @@ async function runTool(argv) {
     }
   }
   if (args === null || typeof args !== 'object' || Array.isArray(args)) throw new Fail('The input is a JSON object of the tool\'s arguments, like {"query": "rachel"}.')
+  for (const secret of secrets) {
+    if (Object.hasOwn(args, secret)) throw new Fail(`Leave ${secret} out of -i: -s ${secret} reads it at a prompt that doesn't show it, or from stdin.`)
+  }
+  if (secrets.length) Object.assign(args, await readSecrets(secrets))
   const idempotency = o['idempotency-key'] || randomUUID()
   const r = await api(root, `/v1/tools/${encodeURIComponent(name)}`, {
     method: 'POST', key: saved.key, body: args,
@@ -752,6 +811,8 @@ Calls a tool and prints its reply as JSON.
 
   -i, --input <json>        The arguments, as a JSON object (- reads them from stdin)
   -f, --input-file <path>   The arguments from a file
+  -s, --secret <name>       Read that argument (a key, token or password) at a prompt that doesn't show it,
+                            or from stdin (< key.json), so it never sits in a chat or a command line
   -w, --wait                Wait for a tool that runs in the background
   -o, --output <path>       Save the reply to a file
       --idempotency-key <k> Retry safely: the same key never charges twice
